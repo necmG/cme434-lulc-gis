@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CME434 – LULC Değişimi & Kentsel Yayılma</title>
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Geocoder CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <!-- ── HEADER ── -->
+  <header id="header">
+    <div id="header-left">
+      <span id="header-icon">🗺</span>
+      <div>
+        <h1>LULC Değişimi &amp; Kentsel Yayılma</h1>
+        <p>CME434 · Karabük Üniversitesi · İstanbul AOI</p>
+      </div>
+    </div>
+    <div id="header-badge">⚠ Mock Veri — Gerçek veri entegrasyonu bekleniyor</div>
+  </header>
+
+  <!-- ── LAYOUT ── -->
+  <div id="layout">
+
+    <!-- ── SIDEBAR ── -->
+    <aside id="sidebar">
+
+      <!-- Katmanlar -->
+      <section class="panel">
+        <h2 class="panel-title">Katmanlar</h2>
+        <label class="toggle-row">
+          <span>LULC Değişim Haritası</span>
+          <input type="checkbox" id="chk_change" checked />
+          <span class="slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Uydu Görüntüsü</span>
+          <input type="checkbox" id="chk_satellite" />
+          <span class="slider"></span>
+        </label>
+      </section>
+
+      <!-- Risk Filtresi -->
+      <section class="panel">
+        <h2 class="panel-title">Risk Filtresi</h2>
+        <div id="risk-buttons">
+          <button class="risk-btn active" data-min="0"   data-max="1"   >Tümü</button>
+          <button class="risk-btn"        data-min="0"   data-max="0.2" >Çok Düşük</button>
+          <button class="risk-btn"        data-min="0.2" data-max="0.4" >Düşük</button>
+          <button class="risk-btn"        data-min="0.4" data-max="0.6" >Orta</button>
+          <button class="risk-btn"        data-min="0.6" data-max="0.8" >Yüksek</button>
+          <button class="risk-btn"        data-min="0.8" data-max="1"   >Çok Yüksek</button>
+        </div>
+      </section>
+
+      <!-- İstatistik Paneli -->
+      <section class="panel">
+        <h2 class="panel-title">İstatistikler</h2>
+        <div id="stats-grid">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-total">—</span>
+            <span class="stat-label">Toplam Nokta</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-changed">—</span>
+            <span class="stat-label">Değişmiş Alan</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-pct">—</span>
+            <span class="stat-label">Değişim Oranı</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-high">—</span>
+            <span class="stat-label">Yüksek Risk</span>
+          </div>
+        </div>
+
+        <!-- Risk dağılımı çubuk grafiği -->
+        <div id="bar-chart">
+          <div class="bar-row" data-cat="very-low">
+            <span class="bar-label">Çok Düşük</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-vl" style="background:#4a90d9"></div></div>
+            <span class="bar-count" id="cnt-vl">0</span>
+          </div>
+          <div class="bar-row" data-cat="low">
+            <span class="bar-label">Düşük</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-l" style="background:#74b9e0"></div></div>
+            <span class="bar-count" id="cnt-l">0</span>
+          </div>
+          <div class="bar-row" data-cat="mid">
+            <span class="bar-label">Orta</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-m" style="background:#f5c842"></div></div>
+            <span class="bar-count" id="cnt-m">0</span>
+          </div>
+          <div class="bar-row" data-cat="high">
+            <span class="bar-label">Yüksek</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-h" style="background:#f07b33"></div></div>
+            <span class="bar-count" id="cnt-h">0</span>
+          </div>
+          <div class="bar-row" data-cat="very-high">
+            <span class="bar-label">Çok Yüksek</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-vh" style="background:#d93025"></div></div>
+            <span class="bar-count" id="cnt-vh">0</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Legend -->
+      <section class="panel">
+        <h2 class="panel-title">Değişim Olasılığı</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:#08306B"></span>Çok Düşük (0.0–0.2)</div>
+          <div class="legend-item"><span class="dot" style="background:#4292C6"></span>Düşük (0.2–0.4)</div>
+          <div class="legend-item"><span class="dot" style="background:#FED976"></span>Orta (0.4–0.6)</div>
+          <div class="legend-item"><span class="dot" style="background:#FD8D3C"></span>Yüksek (0.6–0.8)</div>
+          <div class="legend-item"><span class="dot" style="background:#BD0026"></span>Çok Yüksek (0.8–1.0)</div>
+        </div>
+      </section>
+
+    </aside>
+
+    <!-- ── MAP + INFO ── -->
+    <div id="map-wrapper">
+      <div id="map"></div>
+
+      <!-- Tıklama bilgi kartı -->
+      <div id="info-card" class="hidden">
+        <button id="info-close">✕</button>
+        <h3>Piksel Bilgisi</h3>
+        <div id="info-body"></div>
+      </div>
+    </div>
+
+  </div><!-- /layout -->
+
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
