@@ -1,148 +1,116 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CME434 – LULC Değişimi & Kentsel Yayılma</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CME434 – LULC & Urban Sprawl Analysis</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:#0d1117; --surface:#161b22; --border:#30363d;
+      --text:#e6edf3; --muted:#8b949e; --accent:#388bfd;
+      --green:#3fb950; --header-h:56px; --tab-h:42px;
+    }
+    html,body { height:100%; background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; overflow:hidden; }
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <!-- Geocoder CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
-  <!-- App CSS -->
-  <link rel="stylesheet" href="css/style.css" />
+    #header { height:var(--header-h); background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 20px; }
+    #header-left { display:flex; align-items:center; gap:12px; }
+    #header-logo { font-size:22px; }
+    #header h1 { font-size:15px; font-weight:700; }
+    #header p  { font-size:11px; color:var(--muted); margin-top:1px; }
+    #header-right { display:flex; align-items:center; gap:10px; }
+    .hbadge { font-size:11px; padding:3px 10px; border-radius:20px; border:1px solid var(--border); color:var(--muted); }
+    .hbadge.live { border-color:#2d5f38; color:var(--green); background:#1a2f1e; }
+
+    #tabbar { height:var(--tab-h); background:var(--surface); border-bottom:1px solid var(--border); display:flex; align-items:stretch; padding:0 12px; gap:2px; }
+    .tab { display:flex; align-items:center; gap:7px; padding:0 16px; font-size:13px; font-weight:500; color:var(--muted); border-bottom:2px solid transparent; cursor:pointer; user-select:none; transition:color .15s,border-color .15s; white-space:nowrap; }
+    .tab:hover { color:var(--text); }
+    .tab.active { color:var(--text); border-bottom-color:var(--accent); }
+    .tab-icon { font-size:15px; }
+    .tab-badge { font-size:10px; padding:1px 6px; border-radius:10px; background:var(--border); color:var(--muted); }
+    .tab.active .tab-badge { background:#1f3c60; color:#79c0ff; }
+
+    #panels { height:calc(100vh - var(--header-h) - var(--tab-h)); position:relative; }
+    .panel { position:absolute; inset:0; display:none; }
+    .panel.active { display:block; }
+
+    .panel iframe { width:100%; height:100%; border:none; display:block; }
+
+    #panel-gee { overflow:hidden; }
+
+    .iframe-loader { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); z-index:10; transition:opacity .3s; }
+    .loader-spinner { width:32px; height:32px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .iframe-loader.hidden { opacity:0; pointer-events:none; }
+
+    @media (max-width:600px) { .tab { padding:0 10px; font-size:12px; } #header h1 { font-size:13px; } }
+  </style>
 </head>
 <body>
 
-  <!-- ── HEADER ── -->
-  <header id="header">
-    <div id="header-left">
-      <span id="header-icon">🗺</span>
-      <div>
-        <h1>LULC Değişimi &amp; Kentsel Yayılma</h1>
-        <p>CME434 · Karabük Üniversitesi · İstanbul AOI</p>
-      </div>
+<header id="header">
+  <div id="header-left">
+    <span id="header-logo">🛰️</span>
+    <div>
+      <h1>CME434 — LULC &amp; Urban Sprawl Analysis</h1>
+      <p>Karabük University · Computer Engineering · Istanbul AOI</p>
     </div>
-    <div id="header-badge">⚠ Mock Veri — Gerçek veri entegrasyonu bekleniyor</div>
-  </header>
+  </div>
+  <div id="header-right">
+    <span class="hbadge">GIS + ML</span>
+    <span class="hbadge live">● Live</span>
+  </div>
+</header>
 
-  <!-- ── LAYOUT ── -->
-  <div id="layout">
+<nav id="tabbar">
+  <div class="tab active" data-tab="map">
+    <span class="tab-icon">🗺️</span><span>Interactive Map</span>
+    <span class="tab-badge">Leaflet</span>
+  </div>
+  <div class="tab" data-tab="notebook">
+    <span class="tab-icon">📓</span><span>ML Notebook</span>
+    <span class="tab-badge">Colab</span>
+  </div>
+  <div class="tab" data-tab="gee">
+    <span class="tab-icon">🌍</span><span>GEE Script</span>
+    <span class="tab-badge">JavaScript</span>
+  </div>
+</nav>
 
-    <!-- ── SIDEBAR ── -->
-    <aside id="sidebar">
+<div id="panels">
 
-      <!-- Katmanlar -->
-      <section class="panel">
-        <h2 class="panel-title">Katmanlar</h2>
-        <label class="toggle-row">
-          <span>LULC Değişim Haritası</span>
-          <input type="checkbox" id="chk_change" checked />
-          <span class="slider"></span>
-        </label>
-        <label class="toggle-row">
-          <span>Uydu Görüntüsü</span>
-          <input type="checkbox" id="chk_satellite" />
-          <span class="slider"></span>
-        </label>
-      </section>
+  <!-- MAP -->
+  <div class="panel active" id="panel-map">
+    <div class="iframe-loader" id="loader-map"><div class="loader-spinner"></div></div>
+    <iframe src="map/index.html" title="Interactive LULC Map"
+      onload="document.getElementById('loader-map').classList.add('hidden')"></iframe>
+  </div>
 
-      <!-- Risk Filtresi -->
-      <section class="panel">
-        <h2 class="panel-title">Risk Filtresi</h2>
-        <div id="risk-buttons">
-          <button class="risk-btn active" data-min="0"   data-max="1"   >Tümü</button>
-          <button class="risk-btn"        data-min="0"   data-max="0.2" >Çok Düşük</button>
-          <button class="risk-btn"        data-min="0.2" data-max="0.4" >Düşük</button>
-          <button class="risk-btn"        data-min="0.4" data-max="0.6" >Orta</button>
-          <button class="risk-btn"        data-min="0.6" data-max="0.8" >Yüksek</button>
-          <button class="risk-btn"        data-min="0.8" data-max="1"   >Çok Yüksek</button>
-        </div>
-      </section>
+  <!-- NOTEBOOK -->
+  <div class="panel" id="panel-notebook">
+    <div class="iframe-loader" id="loader-notebook"><div class="loader-spinner"></div></div>
+    <iframe src="notebook/project.html" title="ML Notebook"
+      onload="document.getElementById('loader-notebook').classList.add('hidden')"></iframe>
+  </div>
 
-      <!-- İstatistik Paneli -->
-      <section class="panel">
-        <h2 class="panel-title">İstatistikler</h2>
-        <div id="stats-grid">
-          <div class="stat-box">
-            <span class="stat-val" id="stat-total">—</span>
-            <span class="stat-label">Toplam Nokta</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-val" id="stat-changed">—</span>
-            <span class="stat-label">Değişmiş Alan</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-val" id="stat-pct">—</span>
-            <span class="stat-label">Değişim Oranı</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-val" id="stat-high">—</span>
-            <span class="stat-label">Yüksek Risk</span>
-          </div>
-        </div>
+  <!-- GEE SCRIPT -->
+  <div class="panel" id="panel-gee">
+    <div class="iframe-loader" id="loader-gee"><div class="loader-spinner"></div></div>
+    <iframe src="notebook/gee_documentation.html" title="GEE Documentation"
+      onload="document.getElementById('loader-gee').classList.add('hidden')"></iframe>
+  </div>
 
-        <!-- Risk dağılımı çubuk grafiği -->
-        <div id="bar-chart">
-          <div class="bar-row" data-cat="very-low">
-            <span class="bar-label">Çok Düşük</span>
-            <div class="bar-track"><div class="bar-fill" id="bar-vl" style="background:#4a90d9"></div></div>
-            <span class="bar-count" id="cnt-vl">0</span>
-          </div>
-          <div class="bar-row" data-cat="low">
-            <span class="bar-label">Düşük</span>
-            <div class="bar-track"><div class="bar-fill" id="bar-l" style="background:#74b9e0"></div></div>
-            <span class="bar-count" id="cnt-l">0</span>
-          </div>
-          <div class="bar-row" data-cat="mid">
-            <span class="bar-label">Orta</span>
-            <div class="bar-track"><div class="bar-fill" id="bar-m" style="background:#f5c842"></div></div>
-            <span class="bar-count" id="cnt-m">0</span>
-          </div>
-          <div class="bar-row" data-cat="high">
-            <span class="bar-label">Yüksek</span>
-            <div class="bar-track"><div class="bar-fill" id="bar-h" style="background:#f07b33"></div></div>
-            <span class="bar-count" id="cnt-h">0</span>
-          </div>
-          <div class="bar-row" data-cat="very-high">
-            <span class="bar-label">Çok Yüksek</span>
-            <div class="bar-track"><div class="bar-fill" id="bar-vh" style="background:#d93025"></div></div>
-            <span class="bar-count" id="cnt-vh">0</span>
-          </div>
-        </div>
-      </section>
+</div><!-- /panels -->
 
-      <!-- Legend -->
-      <section class="panel">
-        <h2 class="panel-title">Değişim Olasılığı</h2>
-        <div class="legend">
-          <div class="legend-item"><span class="dot" style="background:#08306B"></span>Çok Düşük (0.0–0.2)</div>
-          <div class="legend-item"><span class="dot" style="background:#4292C6"></span>Düşük (0.2–0.4)</div>
-          <div class="legend-item"><span class="dot" style="background:#FED976"></span>Orta (0.4–0.6)</div>
-          <div class="legend-item"><span class="dot" style="background:#FD8D3C"></span>Yüksek (0.6–0.8)</div>
-          <div class="legend-item"><span class="dot" style="background:#BD0026"></span>Çok Yüksek (0.8–1.0)</div>
-        </div>
-      </section>
-
-    </aside>
-
-    <!-- ── MAP + INFO ── -->
-    <div id="map-wrapper">
-      <div id="map"></div>
-
-      <!-- Tıklama bilgi kartı -->
-      <div id="info-card" class="hidden">
-        <button id="info-close">✕</button>
-        <h3>Piksel Bilgisi</h3>
-        <div id="info-body"></div>
-      </div>
-    </div>
-
-  </div><!-- /layout -->
-
-  <!-- Scripts -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-  <script src="js/app.js"></script>
+<script>
+  document.querySelectorAll('.tab').forEach(function(tab) {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('active'); });
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+</script>
 </body>
 </html>

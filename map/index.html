@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CME434 – LULC Change Map</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header id="header">
+    <div id="header-left">
+      <span id="header-icon">🗺</span>
+      <div>
+        <h1>LULC Change &amp; Urban Sprawl — Interactive Map</h1>
+        <p>CME434 · Karabük University · Istanbul AOI</p>
+      </div>
+    </div>
+  </header>
+
+  <div id="layout">
+    <aside id="sidebar">
+
+      <section class="panel">
+        <h2 class="panel-title">Layers</h2>
+        <label class="toggle-row">
+          <span>LULC Change Map</span>
+          <input type="checkbox" id="chk_change" checked />
+          <span class="slider"></span>
+        </label>
+        <label class="toggle-row">
+          <span>Satellite Imagery</span>
+          <input type="checkbox" id="chk_satellite" />
+          <span class="slider"></span>
+        </label>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">Risk Filter</h2>
+        <div id="risk-buttons">
+          <button class="risk-btn active" data-min="0"   data-max="1"  >All</button>
+          <button class="risk-btn"        data-min="0"   data-max="0.2">Very Low</button>
+          <button class="risk-btn"        data-min="0.2" data-max="0.4">Low</button>
+          <button class="risk-btn"        data-min="0.4" data-max="0.6">Medium</button>
+          <button class="risk-btn"        data-min="0.6" data-max="0.8">High</button>
+          <button class="risk-btn"        data-min="0.8" data-max="1"  >Very High</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">Statistics</h2>
+        <div id="stats-grid">
+          <div class="stat-box">
+            <span class="stat-val" id="stat-total">—</span>
+            <span class="stat-label">Total Points</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-changed">—</span>
+            <span class="stat-label">Changed Area</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-pct">—</span>
+            <span class="stat-label">Change Rate</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-val" id="stat-high">—</span>
+            <span class="stat-label">High Risk</span>
+          </div>
+        </div>
+        <div id="bar-chart">
+          <div class="bar-row">
+            <span class="bar-label">Very Low</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-vl" style="background:#4a90d9"></div></div>
+            <span class="bar-count" id="cnt-vl">0</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Low</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-l" style="background:#74b9e0"></div></div>
+            <span class="bar-count" id="cnt-l">0</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Medium</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-m" style="background:#f5c842"></div></div>
+            <span class="bar-count" id="cnt-m">0</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">High</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-h" style="background:#f07b33"></div></div>
+            <span class="bar-count" id="cnt-h">0</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">Very High</span>
+            <div class="bar-track"><div class="bar-fill" id="bar-vh" style="background:#d93025"></div></div>
+            <span class="bar-count" id="cnt-vh">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="panel-title">Change Probability</h2>
+        <div class="legend">
+          <div class="legend-item"><span class="dot" style="background:#08306B"></span>Very Low (0.0–0.2)</div>
+          <div class="legend-item"><span class="dot" style="background:#4292C6"></span>Low (0.2–0.4)</div>
+          <div class="legend-item"><span class="dot" style="background:#FED976"></span>Medium (0.4–0.6)</div>
+          <div class="legend-item"><span class="dot" style="background:#FD8D3C"></span>High (0.6–0.8)</div>
+          <div class="legend-item"><span class="dot" style="background:#BD0026"></span>Very High (0.8–1.0)</div>
+        </div>
+      </section>
+
+    </aside>
+
+    <div id="map-wrapper">
+      <div id="map"></div>
+      <div id="info-card" class="hidden">
+        <button id="info-close">✕</button>
+        <h3>Pixel Info</h3>
+        <div id="info-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
