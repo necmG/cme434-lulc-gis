@@ -48,7 +48,7 @@ function buildLayer(features) {
   lulcLayer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
     pointToLayer: function(feature, latlng) {
   var zoom = map.getZoom();
-  var r = zoom >= 13 ? 4 : zoom >= 11 ? 2 : 1.5;
+  var r = zoom >= 13 ? 3 : zoom >= 11 ? 1.5 : 1;
   return L.circleMarker(latlng, {
     radius: r,
     fillColor: getColor(feature.properties.probability),
