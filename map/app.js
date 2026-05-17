@@ -47,14 +47,16 @@ function buildLayer(features) {
 
   lulcLayer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
     pointToLayer: function(feature, latlng) {
-      return L.circleMarker(latlng, {
-        radius: 5,
-        fillColor: getColor(feature.properties.probability),
-        color: 'transparent',
-        fillOpacity: 0.82,
-        weight: 0
-      });
-    },
+  var zoom = map.getZoom();
+  var r = zoom >= 13 ? 4 : zoom >= 11 ? 2 : 1.5;
+  return L.circleMarker(latlng, {
+    radius: r,
+    fillColor: getColor(feature.properties.probability),
+    color: 'transparent',
+    fillOpacity: 0.7,
+    weight: 0
+  });
+  },
     onEachFeature: function(feature, layer) {
       layer.on('click', function() {
         showInfoCard(feature.properties);
