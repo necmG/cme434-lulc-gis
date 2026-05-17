@@ -173,7 +173,7 @@ document.getElementById('chk_satellite').addEventListener('change', function() {
 });
 
 // ── LOAD DATA ─────────────────────────────────────────────────────────────
-fetch('data/lulc_change.geojson')
+fetch('data/lulc_change.geojson?v=' + Date.now())
   .then(function(r) { return r.json(); })
   .then(function(data) {
     allFeatures = data.features;
