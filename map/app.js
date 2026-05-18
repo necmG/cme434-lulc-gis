@@ -36,11 +36,11 @@ function getRiskLabel(p) {
 }
 
 // ── STATE ─────────────────────────────────────────────────────────────────
-var allFeatures   = [];
-var lulcLayer     = null;
-var filterMin     = 0;
-var filterMax     = 1;
-var scenarioThreshold = 0.5;  // default: Moderate
+var allFeatures       = [];
+var lulcLayer         = null;
+var filterMin         = 0;
+var filterMax         = 1;
+var scenarioThreshold = 0.5;
 
 // ── LAYER BUILDER ─────────────────────────────────────────────────────────
 function buildLayer(features) {
@@ -48,14 +48,15 @@ function buildLayer(features) {
 
   lulcLayer = L.geoJSON({ type: 'FeatureCollection', features: features }, {
     pointToLayer: function(feature, latlng) {
-      var zoom = map.getZoom();
-      var r = zoom >= 13 ? 3 : zoom >= 11 ? 1.5 : 1;
+      var zoom           = map.getZoom();
+      var r              = zoom >= 13 ? 3 : zoom >= 11 ? 1.5 : 1;
+      var aboveThreshold = feature.properties._aboveThreshold;
       return L.circleMarker(latlng, {
-        radius: r,
-        fillColor: getColor(feature.properties.probability),
-        color: 'transparent',
-        fillOpacity: 0.7,
-        weight: 0
+        radius:      aboveThreshold ? r * 1.8 : r,
+        fillColor:   getColor(feature.properties.probability),
+        color:       aboveThreshold ? '#ffffff' : 'transparent',
+        fillOpacity: aboveThreshold ? 0.95 : 0.20,
+        weight:      aboveThreshold ? 0.6  : 0
       });
     },
     onEachFeature: function(feature, layer) {
@@ -66,7 +67,11 @@ function buildLayer(features) {
         layer.setStyle({ fillOpacity: 1, radius: 7 });
       });
       layer.on('mouseout', function() {
-        layer.setStyle({ fillOpacity: 0.82, radius: 5 });
+        var above = feature.properties._aboveThreshold;
+        layer.setStyle({
+          fillOpacity: above ? 0.95 : 0.20,
+          radius:      above ? 5    : 3
+        });
       });
     }
   });
@@ -78,8 +83,8 @@ function buildLayer(features) {
 
 // ── INFO CARD ─────────────────────────────────────────────────────────────
 function showInfoCard(props) {
-  var p = props.probability;
-  var body = document.getElementById('info-body');
+  var p         = props.probability;
+  var body      = document.getElementById('info-body');
   var riskColor = getColor(p);
 
   body.innerHTML =
@@ -88,10 +93,10 @@ function showInfoCard(props) {
         (p * 100).toFixed(1) + '%</span>') +
     row('Risk Class',
         '<span style="color:' + riskColor + '">' + getRiskLabel(p) + '</span>') +
-    row('NDVI 2018', fmt(props.NDVI_2018)) +
-    row('NDVI 2025', fmt(props.NDVI_2025)) +
-    row('NDBI 2018', fmt(props.NDBI_2018)) +
-    row('NDBI 2025', fmt(props.NDBI_2025)) +
+    row('NDVI 2018',  fmt(props.NDVI_2018)) +
+    row('NDVI 2025',  fmt(props.NDVI_2025)) +
+    row('NDBI 2018',  fmt(props.NDBI_2018)) +
+    row('NDBI 2025',  fmt(props.NDBI_2025)) +
     row('Prediction',
         props.prediction === 1
           ? '<span style="color:#BD0026">Changed</span>'
@@ -152,16 +157,15 @@ function updateStats(features) {
   setBar('bar-vh', 'cnt-vh', counts.vh);
 }
 
-// ── SCENARIO IMPACT CALCULATOR ────────────────────────────────────────────
+// ── SCENARIO IMPACT ───────────────────────────────────────────────────────
 function updateScenarioImpact(threshold) {
   if (allFeatures.length === 0) return;
-
   var total  = allFeatures.length;
   var atRisk = allFeatures.filter(function(f) {
     return f.properties.probability >= threshold;
   }).length;
-  var safe   = total - atRisk;
-  var pct    = ((atRisk / total) * 100).toFixed(1);
+  var safe = total - atRisk;
+  var pct  = ((atRisk / total) * 100).toFixed(1);
 
   document.getElementById('sc-at-risk').textContent  = atRisk.toLocaleString();
   document.getElementById('sc-area-pct').textContent = pct + '% of AOI';
@@ -171,14 +175,10 @@ function updateScenarioImpact(threshold) {
 function setScenario(name, threshold) {
   scenarioThreshold = threshold;
 
-  // Slider güncelle
-  document.getElementById('threshold-slider').value = threshold;
-  document.getElementById('threshold-display').textContent = '≥ ' + threshold.toFixed(2);
+  document.getElementById('threshold-slider').value         = threshold;
+  document.getElementById('threshold-display').textContent  = '≥ ' + threshold.toFixed(2);
+  document.getElementById('sc-name').textContent            = name;
 
-  // Senaryo adı güncelle
-  document.getElementById('sc-name').textContent = name;
-
-  // Buton aktif durumu güncelle
   document.querySelectorAll('.scenario-btn').forEach(function(b) {
     b.classList.remove('active');
   });
@@ -191,7 +191,6 @@ function setScenario(name, threshold) {
     document.getElementById(btnMap[name]).classList.add('active');
   }
 
-  // Haritayı güncelle — threshold üzerindeki pikseller vurgulanır
   applyFilter();
   updateScenarioImpact(threshold);
 }
@@ -207,17 +206,13 @@ document.getElementById('sc-high').addEventListener('click', function() {
   setScenario('High Growth', 0.7);
 });
 
-// Slider
+// Threshold slider
 document.getElementById('threshold-slider').addEventListener('input', function() {
   var val = parseFloat(this.value);
   scenarioThreshold = val;
   document.getElementById('threshold-display').textContent = '≥ ' + val.toFixed(2);
-
-  // Hangi senaryoya yakın olduğunu bul
-  var name = val <= 0.4 ? 'Conservative' : val <= 0.6 ? 'Moderate' : 'High Growth';
   document.getElementById('sc-name').textContent = 'Custom (' + val.toFixed(2) + ')';
 
-  // Tüm butonları pasif yap (custom değer)
   document.querySelectorAll('.scenario-btn').forEach(function(b) {
     b.classList.remove('active');
   });
@@ -226,16 +221,26 @@ document.getElementById('threshold-slider').addEventListener('input', function()
   updateScenarioImpact(val);
 });
 
-// ── RISK FILTER ───────────────────────────────────────────────────────────
+// ── APPLY FILTER ──────────────────────────────────────────────────────────
 function applyFilter() {
   var filtered = allFeatures.filter(function(f) {
     var p = f.properties.probability;
     return p >= filterMin && p <= filterMax;
   });
+
+  // Threshold işaretlemesi ekle
+  filtered = filtered.map(function(f) {
+    var clone = JSON.parse(JSON.stringify(f));
+    clone.properties._aboveThreshold =
+      f.properties.probability >= scenarioThreshold;
+    return clone;
+  });
+
   buildLayer(filtered);
   updateStats(filtered);
 }
 
+// ── RISK FILTER BUTTONS ───────────────────────────────────────────────────
 document.querySelectorAll('.risk-btn').forEach(function(btn) {
   btn.addEventListener('click', function() {
     document.querySelectorAll('.risk-btn').forEach(function(b) {
@@ -271,7 +276,7 @@ fetch('data/lulc_change.geojson?v=' + Date.now())
   .then(function(data) {
     allFeatures = data.features;
     applyFilter();
-    updateScenarioImpact(scenarioThreshold);  // ilk yüklemede senaryo hesapla
+    updateScenarioImpact(scenarioThreshold);
   })
   .catch(function(err) {
     console.error('GeoJSON load error:', err);
